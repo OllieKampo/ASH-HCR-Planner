@@ -5,7 +5,7 @@ ASH is an online autonomous task and high-level action planning system for compl
 ASH uses a novel divide-and-conquer based approach to online hierarchical planning, which enables it to generate and incrementally yield partial plans throughout plan execution.
 This ability can reduces execution latency and total planning times exponentially over the existing state-of-the-art ASP based planners, and for first time places ASP as a practical tool for real-world/time robotics problems.
 
-# HCR Planning at a glance
+## HCR Planning at a glance
 
 The concept of HCR planning is intuitive.
 Plans are generated and progressively refined downwards over an abstraction hierarchy, under a constraint that requires those plans to remain structurally similar and achieve the same effects at all levels.
