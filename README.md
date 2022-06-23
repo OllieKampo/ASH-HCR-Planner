@@ -13,8 +13,8 @@ Plans are generated and progressively refined downwards over an abstraction hier
 This constraint is formed by a series of sub-goal stages, obtained from the effects of abstract actions planned at the high-levels, which serve to form a skeleton for solutions at the lower-levels.
 At any refinement level, the existance of this skeleton structure allows a complete refinement problem to be divided into a sequence of exponentially simpler partial refinement problems, by any of a variety of problem division strategies.
 
-This simple mechanism allows blindingly fast plan generation whilst requiring only the addition of the abstract hierarchy to the robot's knowledge base.
-The hierarchy is simple to define because it requires only a removal of descriptive knowledge.
+This simple mechanism allows blindingly fast plan generation whilst requiring only the addition of the abstraction hierarchy to the robot's knowledge base.
+The conjecture is that obtaining this hierarchy is simple because it requires only a removal of descriptive knowledge.
 
 ## ASP based domain and problem encodings
 
@@ -26,8 +26,8 @@ For example, the following linguistic rules can be trivially translated to the l
 * __Action Precondition__ - "A robot can only grasp objects that share its location"
 * __State Variable Relation__ - "Grasped objects continue to share a robot's location as it moves"
 
-Constructing an abstraction hierarchy requires defining a series of abstract domain models.
-An abstract domain model may; remove, generalise, or redefine system laws, in order to obtain a simplified description of the domain and problem.
+Constructing an abstraction hierarchy for HCR planning requires defining a series of abstract domain models.
+An abstract domain model may; remove, generalise, or redefine any of these system laws, in order to obtain a simplified description of the domain and problem.
 The intuition is that, a plan generated in an abstract model should be significantly easier to solve than the original model, and the abstract plan should give the robot enough of an understanding of what the structure of the original level plan might look like to guide its search for it.
 When the time saved by this is more than the time taken to obtain the abstract solution, then we have benefited from such a mechanism.
 
