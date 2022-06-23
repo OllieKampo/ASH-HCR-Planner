@@ -29,9 +29,8 @@ For example, the following linguistic rules can be trivially translated to the l
 Constructing an abstraction hierarchy for HCR planning requires defining a series of abstract domain models.
 An abstract domain model may; remove, generalise, or redefine any of these system laws, in order to obtain a simplified description of the domain and problem.
 The intuition is that, a plan generated in an abstract model should be significantly easier to solve than the original model, and the abstract plan should give the robot enough of an understanding of what the structure of the original level plan might look like to guide its search for it.
-When the time saved by this is more than the time taken to obtain the abstract solution, then we have benefited from such a mechanism.
 
-There are three such abstract models currently supported by the theory and implementation.
-* __Condensed Models__ - The state space is reduced, by automatically combining sets of detailed entities into abstract descriptors, this reduces the number of actions and state variables needed to represent the problem, and generalises planning constraints. Abstraction mappings are generated automatically.
-* __Relaxed Models__ - A sub-set of action preconditions are removed, this removes significant constraints on planning. Abstraction mappings are generated automatically.
-* __Tasking Models__ - The system laws are redefined to create a system representation that deals with abstract task descriptions, the resulting plan is a sequence of tasks to be completed in order. Abstraction mappings must be given manually by the designer, and tell the planner how it can complete tasks by reaching states of the original model.
+There are three such abstract models currently supported by the theory and implementation:
+* __Condensed Models__ - The state space is reduced, by automatically combining sets of detailed entities into abstract descriptors, this reduces the number of actions and state variables needed to represent the problem, and generalises planning constraints. Abstraction mappings are generated automatically in this type of model.
+* __Relaxed Models__ - A sub-set of action preconditions are removed, this removes significant constraints on planning. Abstraction mappings are not necessary in this type of model, as the state representation does not change.
+* __Tasking Models__ - The system laws are redefined to create a system representation that deals with abstract task descriptions, the resulting plan is a sequence of tasks to be completed. State abstraction mappings must be defined by the designer, which act as recipes for completing those tasks by reaching states of the original model.
