@@ -1,6 +1,6 @@
 ###########################################################################
 ###########################################################################
-## Python script for running experiments with ASH                        ##
+## Module for running experiments with ASH.                              ##
 ## Copyright (C)  2021  Oliver Michael Kamperis                          ##
 ## Email: o.m.kamperis@gmail.com                                         ##
 ##                                                                       ##
@@ -18,6 +18,8 @@
 ## along with this program. If not, see <https://www.gnu.org/licenses/>. ##
 ###########################################################################
 ###########################################################################
+
+"""Module for running experiments with ASH."""
 
 import logging
 import math
@@ -40,7 +42,8 @@ _EXP_logger: logging.Logger = logging.getLogger(__name__)
 _EXP_logger.setLevel(logging.DEBUG)
 
 class Quantiles(NamedTuple):
-    "Convenience class for representing quantiles."
+    """Convenience class for representing quantiles."""
+    
     min: float = 0.0
     lower: float = 0.0
     med: float = 0.0
@@ -48,17 +51,17 @@ class Quantiles(NamedTuple):
     max: float = 0.0
 
 def rmse(actual: list[int], perfect: list[float]) -> float:
-    "Calculates root mean squared error."
+    """Calculate root mean squared error."""
     if len(actual) != len(perfect): raise ValueError("Actual and perfect point spread lists must have equal length.")
     return (sum(abs(float(obs) - float(pred)) ** 2 for obs, pred in zip(actual, perfect)) / len(actual)) ** (0.5)
 
 def mae(actual: list[int], perfect: list[float]) -> float:
-    "Calculates mean absolute error."
+    """Calculate mean absolute error."""
     if len(actual) != len(perfect): raise ValueError("Actual and perfect point spread lists must have equal length.")
     return (sum(abs(float(obs) - float(pred)) for obs, pred in zip(actual, perfect)) / len(actual))
 
 class Results:
-    "Encapsulates the results of experimental trails as a collection of hierarchical plans."
+    """Encapsulates the results of experimental trails as a collection of hierarchical plans."""
     
     __slots__ = ("__optimums",
                  "__plans",
@@ -68,6 +71,7 @@ class Results:
                  "__failed_runs")
     
     def __init__(self, optimums: Optional[dict[int, int]]) -> None:
+        """Create a new results object containing no experimental data."""
         self.__optimums: Optional[dict[int, int]] = optimums
         self.__plans: list[Planner.HierarchicalPlan] = []
         self.__dataframes: dict[str, pandas.DataFrame] = {}
@@ -76,104 +80,145 @@ class Results:
         self.__failed_runs: int = 0
     
     def __getitem__(self, index: int) -> Planner.HierarchicalPlan:
+        """Get the plan at the given index."""
         return self.__plans[index]
     
     def __iter__(self) -> Iterator[Planner.HierarchicalPlan]:
+        """Iterate over the plans in the results."""
         yield from self.__plans
     
     def __len__(self) -> int:
+        """Get the number of plans in the results."""
         return len(self.__plans)
     
     def add(self, plan: Planner.HierarchicalPlan) -> None:
+        """Add a new plan to the results."""
         self.__plans.append(plan)
         self.__is_changed = True
     
     def runs_completed(self, successful_runs: int, failed_runs: int) -> None:
+        """Set the number of successful and failed runs."""
         self.__successful_runs = successful_runs
         self.__failed_runs = failed_runs
         self.__is_changed = True
     
     @property
+    def globals(self) -> pandas.DataFrame:
+        """Get the global statistics of the experiment."""
+        return self.process()["GLOBALS"].drop("RU", axis="columns")
+    
+    @property
+    def cat_level_wise_plans(self) -> pandas.DataFrame:
+        """Get the concatenated plan level wise grouped statistics of the experiment."""
+        return self.process()["CAT"].drop("RU", axis="columns").groupby("AL")
+    
+    @property
+    def par_level_wise_plans(self) -> pandas.DataFrame:
+        """Get the partial plan level wise grouped statistics of the experiment."""
+        return self.process()["PAR"].drop(["RU", "IT"], axis="columns").groupby("AL")
+    
+    @property
+    def par_problem_wise_plans(self) -> pandas.DataFrame:
+        """Get the partial plan level wise and problem wise grouped statistics of the experiment."""
+        return self.process()["PAR"].drop(["RU", "IT"], axis="columns").groupby(["AL", "PN"])
+    
+    @property
+    def step_wise(self) -> pandas.DataFrame:
+        """Get the step wise statistics of the experiment."""
+        return self.process()["STEP_CAT"].drop("RU", axis="columns").groupby(["AL", "SL"])
+    
+    @property
+    def index_wise(self) -> pandas.DataFrame:
+        """Get the index wise statistics of the experiment."""
+        return self.process()["INDEX_CAT"].drop("RU", axis="columns").groupby(["AL", "INDEX"])
+    
+    @staticmethod
+    def set_index(dataframe: pandas.DataFrame, sort_ascending: bool = False) -> pandas.DataFrame:
+        """Sort and reset the index of the dataframe."""
+        return dataframe.sort_index(axis="index", ascending=sort_ascending).reset_index()
+    
+    @property
     def globals_means(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["GLOBALS"].drop("RU", axis="columns").mean().sort_index(axis="index", ascending=False).reset_index()
+        """Get the means of the global statistics of the experiment."""
+        return Results.set_index(self.globals.mean())
     
     @property
     def globals_stdev(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["GLOBALS"].drop("RU", axis="columns").std().sort_index(axis="index", ascending=False).reset_index()
+        """Get the standard deviations of the global statistics of the experiment."""
+        return Results.set_index(self.globals.std())
     
     @property
     def globals_quantiles(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["GLOBALS"].drop("RU", axis="columns").quantile([0.0, 0.25, 0.5, 0.75, 1.0]).sort_index(axis="index", ascending=False).reset_index()
+        """Get the quantiles of the global statistics of the experiment."""
+        return Results.set_index(self.globals.quantile([0.0, 0.25, 0.5, 0.75, 1.0]))
     
     @property
     def cat_level_wise_means(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["CAT"].drop("RU", axis="columns").groupby("AL").mean().sort_index(axis="index", ascending=False).reset_index()
+        """Get the means of the concatenated plan level wise statistics of the experiment."""
+        return Results.set_index(self.cat_level_wise_plans.mean())
     
     @property
     def cat_level_wise_stdev(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["CAT"].drop("RU", axis="columns").groupby("AL").std().sort_index(axis="index", ascending=False).reset_index()
+        """Get the standard deviations of the concatenated plan level wise statistics of the experiment."""
+        return Results.set_index(self.cat_level_wise_plans.std())
     
     @property
     def cat_level_wise_quantiles(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["CAT"].drop("RU", axis="columns").groupby("AL").quantile([0.0, 0.25, 0.5, 0.75, 1.0]).sort_index(axis="index", ascending=False).reset_index()
+        """Get the quantiles of the concatenated plan level wise statistics of the experiment."""
+        return Results.set_index(self.cat_level_wise_plans.quantile([0.0, 0.25, 0.5, 0.75, 1.0]))
     
     @property
     def par_level_wise_means(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["PAR"].drop(["RU", "IT"], axis="columns").groupby("AL").mean().sort_index(axis="index", ascending=False).reset_index()
+        """Get the means of the partial plan level wise statistics of the experiment."""
+        return Results.set_index(self.par_level_wise_plans.mean())
     
     @property
     def par_level_wise_stdev(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["PAR"].drop(["RU", "IT"], axis="columns").groupby("AL").std().sort_index(axis="index", ascending=False).reset_index()
+        """Get the standard deviations of the partial plan level wise statistics of the experiment."""
+        return Results.set_index(self.par_level_wise_plans.std())
     
     @property
     def par_level_wise_quantiles(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["PAR"].drop(["RU", "IT"], axis="columns").groupby("AL").quantile([0.0, 0.25, 0.5, 0.75, 1.0]).sort_index(axis="index", ascending=False).reset_index()
+        """Get the quantiles of the partial plan level wise statistics of the experiment."""
+        return Results.set_index(self.par_level_wise_plans.quantile([0.0, 0.25, 0.5, 0.75, 1.0]))
     
     @property
     def par_problem_wise_means(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["PAR"].drop(["RU", "IT"], axis="columns").groupby(["AL", "PN"]).mean().sort_index(axis="index", ascending=False).reset_index()
+        """Get the means of the partial plan problem wise statistics of the experiment."""
+        return Results.set_index(self.par_problem_wise_plans.mean())
     
     @property
     def par_problem_wise_stdev(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["PAR"].drop(["RU", "IT"], axis="columns").groupby(["AL", "PN"]).std().sort_index(axis="index", ascending=False).reset_index()
+        """Get the standard deviations of the partial plan problem wise statistics of the experiment."""
+        return Results.set_index(self.par_problem_wise_plans.std())
     
     @property
     def par_problem_wise_quantiles(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["PAR"].drop(["RU", "IT"], axis="columns").groupby(["AL", "PN"]).quantile([0.0, 0.25, 0.5, 0.75, 1.0]).sort_index(axis="index", ascending=False).reset_index()
+        """Get the quantiles of the partial plan problem wise statistics of the experiment."""
+        return Results.set_index(self.par_problem_wise_plans.quantile([0.0, 0.25, 0.5, 0.75, 1.0]))
     
     @property
     def step_wise_means(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["STEP_CAT"].drop("RU", axis="columns").groupby(["AL", "SL"]).mean().sort_index(axis="index", ascending=True).reset_index()
+        """Get the means of the step wise statistics of the experiment."""
+        return Results.set_index(self.step_wise.mean(), sort_ascending=True)
     
     @property
     def step_wise_stdev(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["STEP_CAT"].drop("RU", axis="columns").groupby(["AL", "SL"]).std().sort_index(axis="index", ascending=True).reset_index()
+        """Get the standard deviations of the step wise statistics of the experiment."""
+        return Results.set_index(self.step_wise.std(), sort_ascending=True)
     
     @property
     def index_wise_means(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["INDEX_CAT"].drop("RU", axis="columns").groupby(["AL", "INDEX"]).mean().sort_index(axis="index", ascending=True).reset_index()
+        """Get the means of the index wise statistics of the experiment."""
+        return Results.set_index(self.index_wise.mean(), sort_ascending=True)
     
     @property
     def index_wise_stdev(self) -> pandas.DataFrame:
-        dataframes = self.process()
-        return dataframes["INDEX_CAT"].drop("RU", axis="columns").groupby(["AL", "INDEX"]).std().sort_index(axis="index", ascending=True).reset_index()
+        """Get the standard deviations of the index wise statistics of the experiment."""
+        return Results.set_index(self.index_wise.std(), sort_ascending=True)
     
     def best_quality(self) -> Planner.HierarchicalPlan:
+        """Get the best quality plan found in the experiment."""
         best_plan: Planner.HierarchicalPlan
         best_quality, best_length, best_actions = 0
         for hierarchical_plan in self.__plans:
@@ -186,7 +231,7 @@ class Results:
         return best_plan
     
     def process(self) -> dict[str, pandas.DataFrame]:
-        "Process the currently collected data and return them as a pandas dataframe."
+        """Process the currently collected data and return them as a pandas dataframe."""
         if (self.__dataframes is not None
             and not self.__is_changed):
             return self.__dataframes
@@ -978,12 +1023,12 @@ class Results:
         return self.__dataframes
     
     def to_dsv(self, file: str, sep: str = " ", endl: str = "\n", index: bool = True) -> None:
-        "Save the currently collected data to a Delimiter-Seperated Values (DSV) file."
+        """Save the currently collected data to a Delimiter-Seperated Values (DSV) file."""
         dataframes = self.process()
         dataframes["CAT"].to_csv(file, sep=sep, line_terminator=endl, index=index)
     
     def to_excel(self, file: str) -> None:
-        "Save the currently collected data to an excel file."
+        """Save the currently collected data to an excel file."""
         dataframes = self.process()
         top_level: int = self.__plans[-1].top_level
         writer = pandas.ExcelWriter(file, engine="xlsxwriter") # pylint: disable=abstract-class-instantiated
@@ -1053,7 +1098,7 @@ class Results:
         writer.save()
 
 class Experiment:
-    "Encapsulates an experiment to be ran."
+    """Encapsulates an experiment to be ran."""
     
     __slots__ = ("__planner",
                  "__planning_function",
@@ -1074,7 +1119,7 @@ class Experiment:
                  experimental_runs: int,
                  enable_tqdm: bool
                  ) -> None:
-        
+        """Create an experiment."""
         self.__planner: Planner.HierarchicalPlanner = planner
         self.__planning_function: Callable[[], Any] = planning_function
         self.__optimums: Optional[dict[int, int]] = None
@@ -1089,9 +1134,10 @@ class Experiment:
         self.__enable_tqdm: bool = enable_tqdm
     
     def run_experiments(self) -> Results:
-        "Run the encapsulated experiments and return a results object containing obtained statistics."
+        """Run the all experiments and return a results object containing obtained statistics."""
         results: Results = self.__run_all()
-        dataframes = results.process()
+        results.process()
+        
         columns: list[str] = ["LE", "AC", "QL_SCORE",
                               "GT", "ST", "OT", "TT", "LT", "CT", "WT", "MET_PA", "TI_SCORE",
                               "RSS", "VMS", "GRADE"]
@@ -1103,9 +1149,11 @@ class Experiment:
                          + "\n\n" + center_text("Concatenated Plan Level-Wise Standard Deviation",
                                                 frame_after=False, framing_char='~', framing_width=50, centering_width=60)
                          + "\n" + results.cat_level_wise_stdev.to_string(columns=columns))
+        
         return results
     
     def __run_all(self) -> Results:
+        """Worker function that actually runs the experiments and returns an unprocessed results object containing obtained statistics."""
         _EXP_logger.info("\n\n" + center_text(f"Running experiments : Initial runs = {self.__initial_runs} : Experimental runs = {self.__experimental_runs}",
                                               framing_width=96, centering_width=100, framing_char="#"))
         
@@ -1158,8 +1206,7 @@ class Experiment:
         return results
     
     def __run(self) -> tuple[Optional[Planner.HierarchicalPlan], float]:
-        "Run the planner with this experiment's planning function once and return the plan."
-        
+        """Run the planner with this experiment's planning function once and return the plan and total run time."""
         run_start_time: float = time.perf_counter()
         
         ## Generate one plan per run
