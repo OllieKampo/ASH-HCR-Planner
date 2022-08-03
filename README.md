@@ -3,7 +3,7 @@
 ASH is an online autonomous task and high-level action planning system for complex discrete deterministic planning problems, built in Answer Set Programming (ASP).
 
 ASH uses a novel divide-and-conquer based approach to online hierarchical planning, which enables it to generate and incrementally yield partial plans throughout plan execution.
-This ability can reduces execution latency and total planning times exponentially over the existing state-of-the-art ASP based planners, and for first time places ASP as a practical tool for real-world/time robotics problems.
+This ability can reduce execution latency and total planning times exponentially over the existing state-of-the-art ASP based planners, and for first time places ASP as a practical tool for real-world/time robotics problems.
 
 ## HCR Planning at a glance
 
