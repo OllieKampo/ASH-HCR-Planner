@@ -9,6 +9,7 @@ This code is published as part of the paper "Online Hierarchical Conformance Ref
 https://ieeexplore.ieee.org/abstract/document/10275162
 
 To cite, please use:
+```
 @inproceedings{kamperis2023online,
   title={Online Hierarchical Conformance Refinement Planning for Autonomous Robots},
   author={Kamperis, Oliver Michael and Wang, Yongjing and Castellani, Marco},
@@ -17,6 +18,7 @@ To cite, please use:
   year={2023},
   organization={IEEE}
 }
+```
 
 ## HCR Planning at a glance
 
